@@ -113,3 +113,54 @@ export const scenarios: Record<string, CalleCallResult> = {
   "benefits-identity-wall": benefitsIdentityWallScenario,
   "water-unreachable": waterDeptUnreachableScenario,
 };
+
+// Batch "compare 3 pharmacies" — A: in stock + priced (both verified);
+// B: in stock but price NOT stated on the call (price unverified → can't win on price);
+// C: out of stock (verified no). The ranking must recommend A honestly.
+export const pharmacyCompareA: CalleCallResult = {
+  status: "completed",
+  taskCompleted: true,
+  completionConfidence: { score: 0.87, label: "high" },
+  summary: "Rivertown Pharmacy: generic metformin in stock, $4.20 for a 30-day supply.",
+  evidence: ["Confirmed generic metformin is in stock", "Price is $4.20 for a 30-day supply"],
+  structuredResult: { in_stock: "yes", price: "$4.20" },
+  transcriptTurns: [
+    { offsetSeconds: 0, speaker: "bot", text: "Hi, do you have generic metformin in stock, and what's the price for a 30-day supply?" },
+    { offsetSeconds: 7, speaker: "user", text: "Yes, we have generic metformin in stock right now." },
+    { offsetSeconds: 13, speaker: "user", text: "It's $4.20 for a 30-day supply." },
+  ],
+};
+
+export const pharmacyCompareB: CalleCallResult = {
+  status: "completed",
+  taskCompleted: true,
+  completionConfidence: { score: 0.82, label: "high" },
+  summary: "Central Drugs: has generic metformin; exact price was not given on the call.",
+  evidence: ["Confirmed they carry generic metformin"],
+  structuredResult: { in_stock: "yes", price: "$8.00" },
+  transcriptTurns: [
+    { offsetSeconds: 0, speaker: "bot", text: "Do you carry generic metformin, and what does a 30-day supply cost?" },
+    { offsetSeconds: 6, speaker: "user", text: "Yes, we carry it, we have it in stock." },
+    { offsetSeconds: 12, speaker: "bot", text: "Great, and the price?" },
+    { offsetSeconds: 15, speaker: "user", text: "I'd have to check with the pharmacist on the exact price, I'm not sure offhand." },
+  ],
+};
+
+export const pharmacyCompareC: CalleCallResult = {
+  status: "completed",
+  taskCompleted: true,
+  completionConfidence: { score: 0.85, label: "high" },
+  summary: "Eastside Pharmacy: out of generic metformin right now.",
+  evidence: ["They are out of generic metformin currently"],
+  structuredResult: { in_stock: "no", price: "unknown" },
+  transcriptTurns: [
+    { offsetSeconds: 0, speaker: "bot", text: "Do you have generic metformin in stock today?" },
+    { offsetSeconds: 5, speaker: "user", text: "No, we're out of metformin right now, sorry. Try again next week." },
+  ],
+};
+
+export const batchScenarios: Record<string, CalleCallResult> = {
+  "pharmacy-a": pharmacyCompareA,
+  "pharmacy-b": pharmacyCompareB,
+  "pharmacy-c": pharmacyCompareC,
+};

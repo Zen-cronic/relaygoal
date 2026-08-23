@@ -4,6 +4,8 @@
 // engine, safety, and UI are identical. That reuse IS the "reusable by the community"
 // story the rubric rewards.
 
+import type { RankSpec } from "./core/batch";
+
 export interface GoalPreset {
   id: string;
   label: string;
@@ -137,4 +139,52 @@ export function findPreset(verticalId: string, presetId: string): { vertical: Go
   const preset = vertical?.presets.find((p) => p.id === presetId);
   if (!vertical || !preset) return null;
   return { vertical, preset };
+}
+
+export interface BatchRecipientPreset {
+  id: string;
+  label: string;
+  phone: string;
+  scenarioId: string;
+}
+
+export interface BatchGoalPreset {
+  id: string;
+  label: string;
+  task: string;
+  recipients: BatchRecipientPreset[];
+  resultSchema: Record<string, unknown>;
+  requestedKeys: string[];
+  rank: RankSpec;
+}
+
+export const batchPresets: BatchGoalPreset[] = [
+  {
+    id: "compare-pharmacies",
+    label: "Compare 3 pharmacies — who has it, cheapest?",
+    task:
+      "You are calling on behalf of a Deaf customer. Ask whether generic metformin is in stock and the price for a 30-day supply. Report exactly what is said.",
+    recipients: [
+      { id: "pharmacy-a", label: "Rivertown Pharmacy", phone: "+12025550142", scenarioId: "pharmacy-a" },
+      { id: "pharmacy-b", label: "Central Drugs", phone: "+12025550177", scenarioId: "pharmacy-b" },
+      { id: "pharmacy-c", label: "Eastside Pharmacy", phone: "+12025550188", scenarioId: "pharmacy-c" },
+    ],
+    resultSchema: schema({
+      in_stock: "Whether generic metformin is in stock (yes/no)",
+      price: "Price for a 30-day supply",
+    }),
+    requestedKeys: ["in_stock", "price"],
+    rank: {
+      gateKey: "in_stock",
+      gateEquals: "yes",
+      compareKey: "price",
+      kind: "price",
+      direction: "asc",
+      describe: "In stock, then cheapest — ranked only among prices we could verify on the call",
+    },
+  },
+];
+
+export function findBatchPreset(id: string): BatchGoalPreset | null {
+  return batchPresets.find((p) => p.id === id) ?? null;
 }

@@ -6,9 +6,12 @@ import { GoalComposer, type CallRequest } from "@/components/goal-composer";
 import { CallStatusTimeline, type CallStage } from "@/components/call-status-timeline";
 import { VerifiedResultCard } from "@/components/verified-result-card";
 import { TranscriptPanel } from "@/components/transcript-panel";
+import { BatchResultCard } from "@/components/batch-result-card";
 import type { VerifiedOutcome, TranscriptTurn } from "@/src/core/types";
+import type { BatchOutcome } from "@/src/core/batch";
 
 type Status = "idle" | CallStage;
+type ResultKind = "single" | "batch";
 type Caption = { speaker: string; text: string; offsetSeconds: number };
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -22,21 +25,48 @@ function prefersReduced(): boolean {
 
 export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
+  const [kind, setKind] = useState<ResultKind>("single");
   const [captions, setCaptions] = useState<Caption[]>([]);
   const [outcome, setOutcome] = useState<VerifiedOutcome | null>(null);
+  const [batch, setBatch] = useState<BatchOutcome | null>(null);
   const [meta, setMeta] = useState<{ phoneMasked: string; presetLabel: string }>({ phoneMasked: "", presetLabel: "" });
   const [highlighted, setHighlighted] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const busy = status === "dialing" || status === "oncall";
 
-  async function handleCall(req: CallRequest) {
+  function reset(k: ResultKind) {
     setError(null);
     setOutcome(null);
+    setBatch(null);
     setCaptions([]);
     setHighlighted(null);
+    setKind(k);
     setStatus("dialing");
+  }
+
+  async function handleCall(req: CallRequest) {
+    const reduce = prefersReduced();
     try {
+      if (req.mode === "batch") {
+        reset("batch");
+        await wait(reduce ? 0 : 700);
+        setStatus("oncall");
+        const res = await fetch("/api/batch", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ presetId: req.batchPresetId }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "The calls could not be placed.");
+        setMeta({ phoneMasked: "", presetLabel: data.presetLabel });
+        await wait(reduce ? 0 : 1400);
+        setBatch(data.outcome as BatchOutcome);
+        setStatus("done");
+        return;
+      }
+
+      reset("single");
       const res = await fetch("/api/call", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -44,19 +74,15 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "The call could not be placed.");
-
       setMeta({ phoneMasked: data.phoneMasked, presetLabel: data.presetLabel });
-      const reduce = prefersReduced();
       await wait(reduce ? 0 : 700);
       setStatus("oncall");
-
       const turns = (data.outcome.transcript ?? []) as TranscriptTurn[];
       for (const t of turns) {
         setCaptions((prev) => [...prev, { speaker: t.speaker, text: t.text, offsetSeconds: t.offsetSeconds }]);
         await wait(reduce ? 0 : 850);
       }
       if (turns.length === 0) await wait(reduce ? 0 : 900);
-
       setOutcome(data.outcome as VerifiedOutcome);
       setStatus("done");
     } catch (e) {
@@ -66,7 +92,6 @@ export default function Home() {
   }
 
   function cite(offset: number) {
-    // toggle so re-citing the same quote re-triggers the highlight
     setHighlighted(null);
     requestAnimationFrame(() => setHighlighted(offset));
   }
@@ -98,13 +123,14 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col gap-6">
-          {status === "idle" && !outcome && <IdlePanel />}
+          {status === "idle" && <IdlePanel />}
 
-          {(status === "dialing" || status === "oncall") && (
-            <CallStatusTimeline stage={status} captions={captions} phoneMasked={meta.phoneMasked} />
+          {busy && kind === "single" && (
+            <CallStatusTimeline stage={status as CallStage} captions={captions} phoneMasked={meta.phoneMasked} />
           )}
+          {busy && kind === "batch" && <BatchProgress label={meta.presetLabel} />}
 
-          {status === "done" && outcome && (
+          {status === "done" && kind === "single" && outcome && (
             <>
               <VerifiedResultCard
                 outcome={outcome}
@@ -117,6 +143,10 @@ export default function Home() {
                 <TranscriptPanel turns={outcome.transcript} highlightedOffset={highlighted} />
               </section>
             </>
+          )}
+
+          {status === "done" && kind === "batch" && batch && (
+            <BatchResultCard outcome={batch} presetLabel={meta.presetLabel} />
           )}
         </div>
       </main>
@@ -132,14 +162,28 @@ export default function Home() {
   );
 }
 
+function BatchProgress({ label }: { label: string }) {
+  return (
+    <section aria-labelledby="batch-progress-heading" className="rounded-xl border border-border bg-card p-5">
+      <h2 id="batch-progress-heading" className="text-lg">Calling several places for you…</h2>
+      <p className="mt-1 text-muted-foreground" aria-live="polite">{label || "Placing the calls and comparing what each one says."}</p>
+      <div className="mt-4 flex gap-1.5" aria-hidden="true">
+        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
+        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary [animation-delay:200ms]" />
+        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary [animation-delay:400ms]" />
+      </div>
+    </section>
+  );
+}
+
 function IdlePanel() {
   return (
     <section className="rounded-xl border border-dashed border-border bg-card/50 p-6">
       <h2 className="text-lg">Your result will appear here</h2>
       <p className="mt-2 text-muted-foreground">
-        Pick an errand and press <span className="font-semibold text-foreground">Make the call for me</span>. You&apos;ll
-        watch live captions as the agent talks, then get a result card where every answer is backed by the exact quote
-        it came from — or an honest &ldquo;not confirmed, call yourself&rdquo;.
+        Pick an errand and press <span className="font-semibold text-foreground">Make the call for me</span>, or switch
+        to <span className="font-semibold text-foreground">Compare places</span> to call several at once. Every answer
+        comes back backed by the exact quote it came from — or an honest &ldquo;not confirmed, call yourself&rdquo;.
       </p>
     </section>
   );
