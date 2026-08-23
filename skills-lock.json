@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "calle": {
+      "source": "CALLE-AI/call-e-integrations",
+      "sourceType": "github",
+      "skillPath": "skills/calle/SKILL.md",
+      "computedHash": "7905dc4b12ede4e88769fa83d6e5b28cb4fb6fdd98697e5cb8e5ffdf964882d1"
+    }
+  }
+}
