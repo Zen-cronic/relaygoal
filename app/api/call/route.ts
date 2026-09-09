@@ -1,12 +1,14 @@
 import { runVerifiedGoal } from "@/src/core/runGoal";
 import { FakeCalle } from "@/src/core/fakecalle";
+import { selectCalleClient } from "@/src/core/livecalle";
 import { maskPhone } from "@/src/core/phone";
 import { findPreset } from "@/src/goals";
 import { scenarios } from "@/src/scenarios";
 
-// Runs a MOCKED CALL-E call through the real verified-phone-outcome core.
-// Swap `new FakeCalle(scenario)` for `new CalleClient({ apiKey })` to go live —
-// the CalleLike interface is identical, so nothing else changes.
+// Runs a CALL-E call through the real verified-phone-outcome core. Default is the
+// credential-free FakeCalle dry-run path; when RELAYGOAL_LIVE=1 and CALLE_API_KEY is
+// set, selectCalleClient returns the live @call-e/calle adapter instead — the core
+// (validate → one call → verify → fail-closed) is byte-for-byte the same either way.
 export async function POST(req: Request) {
   let body: { verticalId?: string; presetId?: string; goal?: string };
   try {
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "no mock scenario for this goal" }, { status: 500 });
   }
 
-  const client = new FakeCalle(scenario);
+  const { client, live } = await selectCalleClient(new FakeCalle(scenario));
   const goalText = (goal && goal.trim()) || preset.goalText;
 
   const outcome = await runVerifiedGoal(client, {
@@ -46,6 +48,6 @@ export async function POST(req: Request) {
     goalText,
     presetLabel: preset.label,
     phoneMasked: maskPhone(preset.phone),
-    mocked: true,
+    mocked: !live,
   });
 }

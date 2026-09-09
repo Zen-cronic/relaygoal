@@ -1,12 +1,14 @@
 import { runVerifiedBatch } from "@/src/core/batch";
 import { FakeCalle } from "@/src/core/fakecalle";
+import { selectCalleClient } from "@/src/core/livecalle";
 import { maskPhone } from "@/src/core/phone";
 import { findBatchPreset } from "@/src/goals";
 import { batchScenarios } from "@/src/scenarios";
 import type { CreateCallInput } from "@/src/core/types";
 
-// Mocked batch: one canned scenario per recipient phone, run through the real
-// runVerifiedBatch reconciler. Swap FakeCalle for the CALL-E SDK (recipients[]) to go live.
+// Batch "compare across N places": one canned scenario per recipient phone (dry-run default),
+// run through the real runVerifiedBatch reconciler. When RELAYGOAL_LIVE=1 + CALLE_API_KEY is set,
+// selectCalleClient returns the live adapter and the same reconciler places real calls per place.
 export async function POST(req: Request) {
   let body: { presetId?: string };
   try {
@@ -20,11 +22,12 @@ export async function POST(req: Request) {
   if (!preset) return Response.json({ error: "unknown batch goal" }, { status: 404 });
 
   const byPhone = new Map(preset.recipients.map((r) => [r.phone, batchScenarios[r.scenarioId]]));
-  const client = new FakeCalle((input: CreateCallInput) => {
+  const fake = new FakeCalle((input: CreateCallInput) => {
     const scenario = byPhone.get(input.phone);
     if (!scenario) throw new Error(`no mock scenario for ${maskPhone(input.phone)}`);
     return scenario;
   });
+  const { client, live } = await selectCalleClient(fake);
 
   const outcome = await runVerifiedBatch(client, {
     task: preset.task,
@@ -40,5 +43,5 @@ export async function POST(req: Request) {
     recipient: { ...it.recipient, phone: maskPhone(it.recipient.phone) },
   }));
 
-  return Response.json({ outcome, presetLabel: preset.label, mocked: true });
+  return Response.json({ outcome, presetLabel: preset.label, mocked: !live });
 }
