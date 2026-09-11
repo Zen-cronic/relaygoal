@@ -97,6 +97,22 @@ function PlaceCard({ item, isBest }: { item: BatchItemResult; isBest: boolean })
           );
         })}
       </dl>
+      {item.outcome.transcript.length > 0 && (
+        <details className="mt-3 rounded-lg border border-border">
+          <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-primary">
+            Full transcript ({item.outcome.transcript.length} turns)
+          </summary>
+          <ol className="flex flex-col gap-2 border-t border-border p-3 text-sm" aria-label={`Transcript for ${item.recipient.label}`}>
+            {item.outcome.transcript.map((t) => (
+              <li key={t.offsetSeconds} className={t.speaker === "bot" ? "text-muted-foreground" : "text-foreground"}>
+                <span className="font-semibold">{t.speaker === "bot" ? "Agent" : "Them"}</span>{" "}
+                <span className="font-mono text-xs text-muted-foreground">{Math.floor(t.offsetSeconds / 60)}:{String(t.offsetSeconds % 60).padStart(2, "0")}</span>{" "}
+                {t.text}
+              </li>
+            ))}
+          </ol>
+        </details>
+      )}
     </li>
   );
 }

@@ -33,7 +33,7 @@ export function CallStatusTimeline({
             <li
               key={label}
               aria-current={state === "current" ? "step" : undefined}
-              className={`flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ${
+              className={`flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm font-semibold ${
                 state === "done"
                   ? "bg-verified text-verified-foreground"
                   : state === "current"
@@ -41,7 +41,20 @@ export function CallStatusTimeline({
                     : "bg-muted text-muted-foreground"
               }`}
             >
-              <span aria-hidden="true">{state === "done" ? "✓" : i + 1}</span>
+              <span
+                aria-hidden="true"
+                className={`relative flex h-6 w-6 items-center justify-center rounded-full text-xs ${
+                  state === "upcoming" ? "bg-background/60" : "bg-background/25"
+                }`}
+              >
+                {i + 1}
+                {state === "done" && (
+                  <svg viewBox="0 0 20 20" width="12" height="12" fill="currentColor" className="absolute -right-1 -top-1">
+                    <path d="M7.5 13.5 3.8 9.8l1.4-1.4 2.3 2.3 6-6 1.4 1.4z" />
+                  </svg>
+                )}
+              </span>
+              <span className="sr-only">{state === "done" ? "completed: " : state === "current" ? "current: " : ""}</span>
               {label}
             </li>
           );
@@ -61,9 +74,12 @@ export function CallStatusTimeline({
             );
           })}
           {stage !== "done" && (
-            <li className="text-muted-foreground" aria-hidden="true">
+            <li className="flex items-center gap-2 text-muted-foreground" aria-hidden="true">
+              <span className="font-semibold">{stage === "dialing" ? "Dialing" : "Listening"}</span>
               <span className="inline-flex gap-1">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-muted-foreground" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground [animation-delay:200ms]" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground [animation-delay:400ms]" />
               </span>
             </li>
           )}

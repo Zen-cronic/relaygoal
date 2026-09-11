@@ -106,7 +106,7 @@ export default function Home() {
           For people who can&apos;t use the phone. Type the goal, the agent makes the whole call, and you get
           proof of exactly what was said.
         </p>
-        <p className="mt-2 max-w-3xl text-muted-foreground sm:col-start-1">
+        <p className="mt-2 hidden max-w-3xl text-muted-foreground sm:col-start-1 sm:block">
           Built for Deaf, hard-of-hearing and speech-disabled callers, and for the advocates and agencies who
           make calls on their behalf. You are never on the line. Every answer comes back tied to the words
           that were actually spoken, or honestly marked as not confirmed.
@@ -153,7 +153,7 @@ export default function Home() {
 
         {/* Transcript sits under the composer so the two panes balance and the
             evidence link visibly jumps across from the receipt to the record. */}
-        {status === "done" && kind === "single" && outcome && (
+        {status === "done" && kind === "single" && outcome && outcome.transcript.length > 0 && (
           <section
             aria-labelledby="transcript-heading"
             className="rounded-xl border border-border bg-card p-5 lg:col-start-1 lg:row-start-2"
