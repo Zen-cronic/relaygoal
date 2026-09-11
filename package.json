@@ -2,7 +2,7 @@
   "name": "relaygoal",
   "version": "0.1.0",
   "private": true,
-  "description": "Verified phone-outcome relay for CALL-E: type a goal, the agent makes the whole call, you get an answer grounded in exact transcript quotes. Accessibility relay is the flagship vertical. Built on a mocked call path (FakeCalle) — swap in @call-e/calle to go live.",
+  "description": "Verified phone-outcome relay for CALL-E: type a goal, the agent makes the whole call, you get an answer grounded in exact transcript quotes. Accessibility relay is the flagship vertical. Built on a mocked call path (FakeCalle) \u2014 swap in @call-e/calle to go live.",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -14,7 +14,8 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eval": "vitest run test/eval.test.ts --reporter=verbose"
   },
   "dependencies": {
     "next": "^15.5.23",

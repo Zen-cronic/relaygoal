@@ -3,6 +3,13 @@
 import type { VerifiedOutcome, VerifiedField } from "@/src/core/types";
 import { VerificationChip } from "./verification-chip";
 import { EvidenceQuote, markValue } from "./evidence-quote";
+import { findDisclosure } from "@/src/core/disclosure";
+
+function fmtOffset(offset: number): string {
+  const m = Math.floor(offset / 60);
+  const sec = offset % 60;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
 
 function humanize(key: string): string {
   const s = key.replace(/_/g, " ");
@@ -58,6 +65,7 @@ export function VerifiedResultCard({
   onCiteQuote: (offsetSeconds: number) => void;
 }) {
   const status = statusLine(outcome);
+  const disclosure = findDisclosure(outcome.transcript);
   const unconfirmed = outcome.fields.filter((f) => f.status !== "verified").map((f) => humanize(f.key));
 
   // Track which transcript sentences have already been shown so a sentence that
@@ -80,6 +88,29 @@ export function VerifiedResultCard({
 
       {outcome.summary && (
         <p className="border-b border-border px-5 py-3 text-muted-foreground">{outcome.summary}</p>
+      )}
+
+      {outcome.transcript.length > 0 && (
+        <p className="border-b border-border px-5 py-3 text-sm text-muted-foreground">
+          {disclosure.disclosed && disclosure.turn ? (
+            <>
+              <span className="font-semibold text-foreground">AI disclosed</span> at{" "}
+              <span className="font-mono">{fmtOffset(disclosure.turn.offsetSeconds)}</span>: &ldquo;{disclosure.turn.text}&rdquo;{" "}
+              <button
+                type="button"
+                onClick={() => onCiteQuote(disclosure.turn!.offsetSeconds)}
+                className="rounded-md px-1.5 py-0.5 font-semibold text-primary underline underline-offset-2 hover:bg-accent"
+              >
+                Show in transcript
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-caution-foreground">No AI disclosure found</span> in the agent&apos;s
+              words on this call.
+            </>
+          )}
+        </p>
       )}
 
       <dl className="divide-y divide-border">

@@ -46,7 +46,7 @@ export const clinicHoursScenario: CalleCallResult = {
     walk_in_flu_shot: "yes",
   },
   transcriptTurns: [
-    { offsetSeconds: 0, speaker: "bot", text: "Hello, what time do you close today, and are walk-in flu shots available?" },
+    { offsetSeconds: 0, speaker: "bot", text: "Hi, I'm an assistant calling on behalf of a patient. What time do you close today, and are walk-in flu shots available?" },
     { offsetSeconds: 6, speaker: "user", text: "We're open until 6:00 PM today." },
     { offsetSeconds: 11, speaker: "user", text: "Yes, walk-in flu shots are available, no appointment needed." },
   ],
@@ -67,7 +67,7 @@ export const dmvRealIdScenario: CalleCallResult = {
     wait_time: "about 40 minutes",
   },
   transcriptTurns: [
-    { offsetSeconds: 0, speaker: "bot", text: "Hi, what documents are required to apply for a REAL ID, and what's the current wait?" },
+    { offsetSeconds: 0, speaker: "bot", text: "Hi, I'm an assistant calling on a resident's behalf. What documents are required to apply for a REAL ID, and what's the current wait?" },
     { offsetSeconds: 8, speaker: "user", text: "For a REAL ID, bring a passport or birth certificate, two proofs of address, and your Social Security card." },
     { offsetSeconds: 19, speaker: "user", text: "Right now the wait is about 40 minutes." },
   ],
@@ -90,7 +90,7 @@ export const benefitsIdentityWallScenario: CalleCallResult = {
     case_status: "unknown",
   },
   transcriptTurns: [
-    { offsetSeconds: 0, speaker: "bot", text: "Hello, what are your hours, and can you tell me the status of a case?" },
+    { offsetSeconds: 0, speaker: "bot", text: "Hello, I'm an assistant calling on a resident's behalf. What are your hours, and can you tell me the status of a case?" },
     { offsetSeconds: 7, speaker: "user", text: "We're open 8:00 AM to 4:30 PM, Monday through Friday." },
     { offsetSeconds: 14, speaker: "user", text: "I'm sorry, I can't share case status unless the account holder is on the line to verify their identity." },
   ],
@@ -125,7 +125,7 @@ export const pharmacyCompareA: CalleCallResult = {
   evidence: ["Confirmed generic metformin is in stock", "Price is $4.20 for a 30-day supply"],
   structuredResult: { in_stock: "yes", price: "$4.20" },
   transcriptTurns: [
-    { offsetSeconds: 0, speaker: "bot", text: "Hi, do you have generic metformin in stock, and what's the price for a 30-day supply?" },
+    { offsetSeconds: 0, speaker: "bot", text: "Hi, I'm an assistant calling on a customer's behalf. Do you have generic metformin in stock, and what's the price for a 30-day supply?" },
     { offsetSeconds: 7, speaker: "user", text: "Yes, we have generic metformin in stock right now." },
     { offsetSeconds: 13, speaker: "user", text: "It's $4.20 for a 30-day supply." },
   ],
@@ -139,7 +139,7 @@ export const pharmacyCompareB: CalleCallResult = {
   evidence: ["Confirmed they carry generic metformin"],
   structuredResult: { in_stock: "yes", price: "$8.00" },
   transcriptTurns: [
-    { offsetSeconds: 0, speaker: "bot", text: "Do you carry generic metformin, and what does a 30-day supply cost?" },
+    { offsetSeconds: 0, speaker: "bot", text: "Hi, I'm an assistant calling on a customer's behalf. Do you carry generic metformin, and what does a 30-day supply cost?" },
     { offsetSeconds: 6, speaker: "user", text: "Yes, we carry it, we have it in stock." },
     { offsetSeconds: 12, speaker: "bot", text: "Great, and the price?" },
     { offsetSeconds: 15, speaker: "user", text: "I'd have to check with the pharmacist on the exact price, I'm not sure offhand." },
@@ -154,7 +154,7 @@ export const pharmacyCompareC: CalleCallResult = {
   evidence: ["They are out of generic metformin currently"],
   structuredResult: { in_stock: "no", price: "unknown" },
   transcriptTurns: [
-    { offsetSeconds: 0, speaker: "bot", text: "Do you have generic metformin in stock today?" },
+    { offsetSeconds: 0, speaker: "bot", text: "Hi, I'm an assistant calling on a customer's behalf. Do you have generic metformin in stock today?" },
     { offsetSeconds: 5, speaker: "user", text: "No, we're out of metformin right now, sorry. Try again next week." },
   ],
 };
