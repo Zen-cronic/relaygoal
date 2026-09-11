@@ -56,7 +56,9 @@ test-results/
 *.mp4
 
 # Harness / editor local
-.claude/settings.local.json
+.claude
+.codex
+.agents
 .vscode/
 .idea/
 .DS_Store
