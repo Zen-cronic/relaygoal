@@ -30,12 +30,12 @@
     "typescript": "^5.6.0",
     "vitest": "^2.0.5"
   },
-  "peerDependencies": {
-    "@call-e/calle": "^0.7.0"
-  },
   "peerDependenciesMeta": {
     "@call-e/calle": {
       "optional": true
     }
+  },
+  "optionalDependencies": {
+    "@call-e/calle": "^0.7.0"
   }
 }
