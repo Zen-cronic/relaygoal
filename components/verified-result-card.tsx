@@ -1,16 +1,49 @@
 "use client";
 
 import type { VerifiedOutcome, VerifiedField } from "@/src/core/types";
-import { VerificationChip, type ChipStatus } from "./verification-chip";
+import { VerificationChip } from "./verification-chip";
+import { EvidenceQuote, markValue } from "./evidence-quote";
 
 function humanize(key: string): string {
   const s = key.replace(/_/g, " ");
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function overallChip(outcome: VerifiedOutcome): ChipStatus {
-  if (outcome.unreachable) return "unreachable";
-  return outcome.overall; // "verified" | "partial" | "unverified"
+// Header status line: one quiet sentence in a fixed slot, never a pill. The pills
+// belong to the per-field rows; repeating one at the top turned proof into wallpaper.
+function statusLine(outcome: VerifiedOutcome): { text: string; tone: "verified" | "caution" | "destructive"; icon: "check" | "warn" | "x" } {
+  const total = outcome.fields.length;
+  const ok = outcome.fields.filter((f) => f.status === "verified").length;
+  if (outcome.unreachable) return { text: "Couldn't reach them. Nothing was confirmed.", tone: "destructive", icon: "x" };
+  if (ok === total) return { text: `${ok} of ${total} answers verified from the call`, tone: "verified", icon: "check" };
+  if (ok === 0) return { text: `None of the ${total} answers could be confirmed`, tone: "caution", icon: "warn" };
+  return { text: `${ok} of ${total} answers verified, ${total - ok} not confirmed`, tone: "caution", icon: "warn" };
+}
+
+const TONE: Record<"verified" | "caution" | "destructive", string> = {
+  verified: "text-verified",
+  caution: "text-caution-foreground",
+  destructive: "text-destructive",
+};
+
+function StatusIcon({ icon }: { icon: "check" | "warn" | "x" }) {
+  if (icon === "check")
+    return (
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" fill="currentColor">
+        <path d="M7.5 13.5 3.8 9.8l1.4-1.4 2.3 2.3 6-6 1.4 1.4z" />
+      </svg>
+    );
+  if (icon === "warn")
+    return (
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" fill="currentColor">
+        <path d="M10 2 1 18h18L10 2zm0 5 .9 6h-1.8L10 7zm0 8.2a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2z" />
+      </svg>
+    );
+  return (
+    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" fill="currentColor">
+      <path d="m10 8.6 3.5-3.5 1.4 1.4L11.4 10l3.5 3.5-1.4 1.4L10 11.4l-3.5 3.5-1.4-1.4L8.6 10 5.1 6.5l1.4-1.4z" />
+    </svg>
+  );
 }
 
 export function VerifiedResultCard({
@@ -24,17 +57,25 @@ export function VerifiedResultCard({
   presetLabel: string;
   onCiteQuote: (offsetSeconds: number) => void;
 }) {
+  const status = statusLine(outcome);
+  const unconfirmed = outcome.fields.filter((f) => f.status !== "verified").map((f) => humanize(f.key));
+
+  // Track which transcript sentences have already been shown so a sentence that
+  // proves two answers is quoted once in full and referenced the second time.
+  const shown = new Map<number, string>();
+
   return (
     <section
       aria-labelledby="result-heading"
       className="rounded-xl border border-border bg-card text-card-foreground shadow-sm"
     >
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-5">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">Result</p>
-          <h2 id="result-heading" className="text-2xl">{presetLabel}</h2>
-        </div>
-        <VerificationChip status={overallChip(outcome)} />
+      <header className="border-b border-border p-5">
+        <p className="text-sm font-medium text-muted-foreground">Result</p>
+        <h2 id="result-heading" className="text-2xl">{presetLabel}</h2>
+        <p className={`mt-2 flex items-center gap-1.5 font-semibold ${TONE[status.tone]}`}>
+          <StatusIcon icon={status.icon} />
+          <span>{status.text}</span>
+        </p>
       </header>
 
       {outcome.summary && (
@@ -42,20 +83,26 @@ export function VerifiedResultCard({
       )}
 
       <dl className="divide-y divide-border">
-        {outcome.fields.map((field) => (
-          <FieldRow key={field.key} field={field} onCiteQuote={onCiteQuote} />
-        ))}
+        {outcome.fields.map((field) => {
+          const priorLabel = field.quotes[0] ? shown.get(field.quotes[0].offsetSeconds) : undefined;
+          if (field.status === "verified" && field.quotes[0] && !priorLabel) {
+            shown.set(field.quotes[0].offsetSeconds, humanize(field.key));
+          }
+          return (
+            <FieldRow key={field.key} field={field} onCiteQuote={onCiteQuote} sameSentenceAs={priorLabel} />
+          );
+        })}
       </dl>
 
-      {outcome.overall !== "verified" && outcome.advice && (
-        <div
-          role="note"
-          className="m-5 rounded-lg border-2 border-caution bg-caution/10 p-4"
-        >
-          <p className="font-semibold text-foreground">Don&apos;t rely on the unconfirmed parts.</p>
-          <p className="mt-1 text-foreground">{outcome.advice}</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            To be sure, call them yourself: <span className="font-mono">{phoneMasked}</span>
+      {outcome.overall !== "verified" && (
+        <div role="note" className="m-5 rounded-lg border-l-4 border-caution bg-muted/50 p-4">
+          <p className="font-semibold text-foreground">
+            {outcome.unreachable
+              ? "Nothing was confirmed. Please try again later or call yourself."
+              : `${unconfirmed.join(" and ")} could not be confirmed. Call them yourself to be sure.`}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Number to call: <span className="font-mono text-foreground">{phoneMasked}</span>
           </p>
         </div>
       )}
@@ -66,13 +113,16 @@ export function VerifiedResultCard({
 function FieldRow({
   field,
   onCiteQuote,
+  sameSentenceAs,
 }: {
   field: VerifiedField;
   onCiteQuote: (offsetSeconds: number) => void;
+  sameSentenceAs?: string;
 }) {
   const value = field.value === null || field.value === undefined || field.value === ""
     ? "No answer"
     : String(field.value);
+  const quote = field.quotes[0];
 
   return (
     <div className="px-5 py-4">
@@ -82,30 +132,26 @@ function FieldRow({
       </div>
       <dd className="mt-1 text-lg">{value}</dd>
 
-      {field.status === "verified" && field.quotes.length > 0 && (
-        <div className="mt-3 rounded-lg bg-muted/50 p-3">
-          <p className="mb-1 text-sm font-medium text-muted-foreground">Proof — what they actually said:</p>
-          <ul className="flex flex-col gap-2">
-            {field.quotes.map((q) => (
-              <li key={q.offsetSeconds} className="flex flex-col gap-1">
-                <blockquote className="border-l-2 border-verified pl-3 italic">&ldquo;{q.text}&rdquo;</blockquote>
-                <button
-                  type="button"
-                  onClick={() => onCiteQuote(q.offsetSeconds)}
-                  className="self-start rounded-md px-2 py-1 text-sm font-semibold text-primary underline underline-offset-2 hover:bg-accent"
-                >
-                  Show in transcript →
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {field.status === "verified" && quote && !sameSentenceAs && (
+        <EvidenceQuote text={quote.text} value={value} onCite={() => onCiteQuote(quote.offsetSeconds)} />
+      )}
+
+      {field.status === "verified" && quote && sameSentenceAs && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          Same sentence as <span className="font-semibold text-foreground">{sameSentenceAs}</span>:{" "}
+          <span className="italic">&ldquo;{markValue(quote.text, value)}&rdquo;</span>{" "}
+          <button
+            type="button"
+            onClick={() => onCiteQuote(quote.offsetSeconds)}
+            className="rounded-md px-1.5 py-0.5 font-semibold text-primary underline underline-offset-2 hover:bg-accent"
+          >
+            Show in transcript
+          </button>
+        </p>
       )}
 
       {field.status === "unverified" && field.reason && (
-        <p className="mt-2 text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">Not confirmed:</span> {field.reason}.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">{field.reason.charAt(0).toUpperCase() + field.reason.slice(1)}.</p>
       )}
     </div>
   );

@@ -97,32 +97,39 @@ export default function Home() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6 sm:px-6">
-      <header className="mb-8 flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-3xl sm:text-4xl">
-            Relay<span className="text-primary">Goal</span>
-          </h1>
-          <p className="mt-1 max-w-xl text-lg text-muted-foreground">
-            The call, made for you — with proof. Type a goal; we make the whole call and hand back a
-            verified answer grounded in exactly what was said.
-          </p>
+    <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-5 sm:px-6">
+      <header className="mb-6 border-b border-border pb-5 sm:grid sm:grid-cols-[1fr_auto] sm:items-start sm:gap-x-6">
+        <h1 className="text-3xl sm:text-4xl">
+          Relay<span className="text-primary">Goal</span>
+        </h1>
+        <p className="mt-3 max-w-3xl text-xl leading-snug sm:col-start-1 sm:text-2xl">
+          For people who can&apos;t use the phone. Type the goal, the agent makes the whole call, and you get
+          proof of exactly what was said.
+        </p>
+        <p className="mt-2 max-w-3xl text-muted-foreground sm:col-start-1">
+          Built for Deaf, hard-of-hearing and speech-disabled callers, and for the advocates and agencies who
+          make calls on their behalf. You are never on the line. Every answer comes back tied to the words
+          that were actually spoken, or honestly marked as not confirmed.
+        </p>
+        <div className="mt-4 sm:col-start-2 sm:row-start-1 sm:mt-0 sm:justify-self-end">
+          <A11yControls />
         </div>
-        <A11yControls />
       </header>
 
-      <main id="main" className="grid flex-1 gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-4">
+      <main
+        id="main"
+        className="grid flex-1 items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:grid-rows-[auto_1fr]"
+      >
+        <div className="flex flex-col gap-4 lg:col-start-1 lg:row-start-1">
           <GoalComposer onSubmit={handleCall} disabled={busy} />
           {error && (
             <p role="alert" className="rounded-lg border-2 border-destructive bg-destructive/10 p-3 text-foreground">
               {error}
             </p>
           )}
-          <HowItWorks />
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           {status === "idle" && <IdlePanel />}
 
           {busy && kind === "single" && (
@@ -131,31 +138,38 @@ export default function Home() {
           {busy && kind === "batch" && <BatchProgress label={meta.presetLabel} />}
 
           {status === "done" && kind === "single" && outcome && (
-            <>
-              <VerifiedResultCard
-                outcome={outcome}
-                phoneMasked={meta.phoneMasked}
-                presetLabel={meta.presetLabel}
-                onCiteQuote={cite}
-              />
-              <section aria-labelledby="transcript-heading" className="rounded-xl border border-border bg-card p-5">
-                <h2 id="transcript-heading" className="mb-3 text-lg">Full transcript</h2>
-                <TranscriptPanel turns={outcome.transcript} highlightedOffset={highlighted} />
-              </section>
-            </>
+            <VerifiedResultCard
+              outcome={outcome}
+              phoneMasked={meta.phoneMasked}
+              presetLabel={meta.presetLabel}
+              onCiteQuote={cite}
+            />
           )}
 
           {status === "done" && kind === "batch" && batch && (
             <BatchResultCard outcome={batch} presetLabel={meta.presetLabel} />
           )}
         </div>
+
+        {/* Transcript sits under the composer so the two panes balance and the
+            evidence link visibly jumps across from the receipt to the record. */}
+        {status === "done" && kind === "single" && outcome && (
+          <section
+            aria-labelledby="transcript-heading"
+            className="rounded-xl border border-border bg-card p-5 lg:col-start-1 lg:row-start-2"
+          >
+            <h2 id="transcript-heading" className="mb-3 text-lg">Full transcript</h2>
+            <TranscriptPanel turns={outcome.transcript} highlightedOffset={highlighted} />
+          </section>
+        )}
       </main>
 
-      <footer className="mt-10 border-t border-border pt-6 text-sm text-muted-foreground">
+      <footer className="mt-10 border-t border-border pt-5 text-sm text-muted-foreground">
         <p>
           Built on <span className="font-semibold text-foreground">CALL-E</span> goal-driven tasks with structured
-          extraction. This demo runs on a mocked call path (no real numbers dialed); swap in the CALL-E SDK to go live.
-          Every number shown is a reserved-fictional 555-01xx number.
+          extraction. This demo runs on a mocked call path (no real numbers dialed); the live CALL-E SDK path is an
+          explicit opt-in. Every number shown is a reserved-fictional 555-01xx number. RelayGoal is a task relay and
+          an auxiliary aid, not a substitute for an interpreter.
         </p>
       </footer>
     </div>
@@ -176,41 +190,35 @@ function BatchProgress({ label }: { label: string }) {
   );
 }
 
+// Idle state doubles as the explainer, so the result column is never an empty box
+// and "How it works" disappears the moment a real result takes its place.
 function IdlePanel() {
-  return (
-    <section className="rounded-xl border border-dashed border-border bg-card/50 p-6">
-      <h2 className="text-lg">Your result will appear here</h2>
-      <p className="mt-2 text-muted-foreground">
-        Pick an errand and press <span className="font-semibold text-foreground">Make the call for me</span>, or switch
-        to <span className="font-semibold text-foreground">Compare places</span> to call several at once. Every answer
-        comes back backed by the exact quote it came from — or an honest &ldquo;not confirmed, call yourself&rdquo;.
-      </p>
-    </section>
-  );
-}
-
-function HowItWorks() {
   const steps = [
-    { n: 1, t: "Type the goal", d: "Say what you need in plain language. No phone call for you." },
-    { n: 2, t: "The agent calls", d: "It handles the conversation and any phone menus, and captions everything." },
-    { n: 3, t: "You get proof", d: "Each answer is bound to the exact words that were said — or marked unverified." },
+    { n: 1, t: "Type the goal", d: "Say what you need in plain language. There is no phone call for you to take." },
+    { n: 2, t: "The agent calls", d: "It holds the conversation, works through any phone menu, and captions everything live." },
+    { n: 3, t: "You get proof", d: "Each answer is bound to the exact words that were said, or marked not confirmed." },
   ];
   return (
     <section aria-labelledby="how-heading" className="rounded-xl border border-border bg-card p-5">
-      <h2 id="how-heading" className="mb-3 text-lg">How it works</h2>
-      <ol className="flex flex-col gap-3">
+      <p className="text-sm font-medium text-muted-foreground">Your result will appear here</p>
+      <h2 id="how-heading" className="mt-1 text-2xl">How it works</h2>
+      <ol className="mt-4 flex flex-col gap-4">
         {steps.map((s) => (
           <li key={s.n} className="flex gap-3">
-            <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground">
               {s.n}
             </span>
             <span>
-              <span className="font-semibold">{s.t}.</span>{" "}
+              <span className="block font-semibold">{s.t}</span>
               <span className="text-muted-foreground">{s.d}</span>
             </span>
           </li>
         ))}
       </ol>
+      <p className="mt-5 border-t border-border pt-4 text-sm text-muted-foreground">
+        Pick an errand and press <span className="font-semibold text-foreground">Make the call for me</span>, or switch
+        to <span className="font-semibold text-foreground">Compare places</span> to call several at once.
+      </p>
     </section>
   );
 }

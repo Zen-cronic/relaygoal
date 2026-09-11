@@ -9,6 +9,18 @@ export type CallRequest =
 
 type Mode = "single" | "batch";
 
+// One errand picker. The accessibility relay is the product; civic-office errands
+// ride along as an optgroup to show the same engine is one config away, not a
+// second product with its own tab.
+const GROUP_LABEL: Record<string, string> = {
+  accessibility: "Everyday errands",
+  civic: "Government and utility offices (same engine, different config)",
+};
+
+const firstVertical = verticals[0]!;
+const firstPreset = firstVertical.presets[0]!;
+const keyOf = (verticalId: string, presetId: string) => `${verticalId}:${presetId}`;
+
 export function GoalComposer({
   onSubmit,
   disabled,
@@ -19,14 +31,14 @@ export function GoalComposer({
   const [mode, setMode] = useState<Mode>("single");
 
   // Single-call state
-  const [verticalId, setVerticalId] = useState<string>(verticals[0]!.id);
-  const vertical = useMemo(() => verticals.find((v) => v.id === verticalId)!, [verticalId]);
-  const [presetId, setPresetId] = useState(vertical.presets[0]!.id);
-  const preset = useMemo(
-    () => vertical.presets.find((p) => p.id === presetId) ?? vertical.presets[0]!,
-    [vertical, presetId],
-  );
-  const [goal, setGoal] = useState(vertical.presets[0]!.goalText);
+  const [selection, setSelection] = useState(keyOf(firstVertical.id, firstPreset.id));
+  const { vertical, preset } = useMemo(() => {
+    const [vId, pId] = selection.split(":");
+    const v = verticals.find((x) => x.id === vId) ?? firstVertical;
+    const p = v.presets.find((x) => x.id === pId) ?? v.presets[0]!;
+    return { vertical: v, preset: p };
+  }, [selection]);
+  const [goal, setGoal] = useState(firstPreset.goalText);
 
   // Batch state
   const [batchPresetId, setBatchPresetId] = useState(batchPresets[0]!.id);
@@ -35,28 +47,22 @@ export function GoalComposer({
     [batchPresetId],
   );
 
-  function switchVertical(id: string) {
-    const v = verticals.find((x) => x.id === id)!;
-    setVerticalId(id);
-    setPresetId(v.presets[0]!.id);
-    setGoal(v.presets[0]!.goalText);
-  }
-
-  function switchPreset(id: string) {
-    setPresetId(id);
-    const p = vertical.presets.find((x) => x.id === id);
+  function switchPreset(key: string) {
+    setSelection(key);
+    const [vId, pId] = key.split(":");
+    const p = verticals.find((x) => x.id === vId)?.presets.find((x) => x.id === pId);
     if (p) setGoal(p.goalText);
   }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (mode === "batch") onSubmit({ mode: "batch", batchPresetId });
-    else onSubmit({ mode: "single", verticalId, presetId, goal });
+    else onSubmit({ mode: "single", verticalId: vertical.id, presetId: preset.id, goal });
   }
 
   return (
     <form className="rounded-xl border border-border bg-card p-5" onSubmit={submit}>
-      <div className="mb-4 inline-flex rounded-lg border border-border p-1" role="group" aria-label="Call one place or compare several">
+      <div className="mb-5 inline-flex rounded-lg border border-border p-1" role="group" aria-label="Call one place or compare several">
         {(["single", "batch"] as const).map((m) => (
           <button
             key={m}
@@ -74,40 +80,28 @@ export function GoalComposer({
 
       {mode === "single" ? (
         <>
-          <div className="mb-4" role="group" aria-label="Choose what kind of call">
-            <div className="inline-flex rounded-lg border border-border p-1">
-              {verticals.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  aria-pressed={v.id === verticalId}
-                  onClick={() => switchVertical(v.id)}
-                  className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
-                    v.id === verticalId ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-accent"
-                  }`}
-                >
-                  {v.title}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">{vertical.tagline}</p>
-          </div>
-
           <div className="mb-4">
             <label htmlFor="preset" className="mb-1 block font-semibold">Pick an errand</label>
             <select
               id="preset"
-              value={presetId}
+              value={selection}
               onChange={(e) => switchPreset(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-foreground"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground"
             >
-              {vertical.presets.map((p) => (
-                <option key={p.id} value={p.id}>{p.label}</option>
+              {verticals.map((v) => (
+                <optgroup key={v.id} label={GROUP_LABEL[v.id] ?? v.title}>
+                  {v.presets.map((p) => (
+                    <option key={p.id} value={keyOf(v.id, p.id)}>{p.label}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
+            {vertical.id !== "accessibility" && (
+              <p className="mt-2 text-sm text-muted-foreground">{vertical.tagline}</p>
+            )}
           </div>
 
-          <div className="mb-4">
+          <div className="mb-5">
             <label htmlFor="goal" className="mb-1 block font-semibold">
               What should we ask? <span className="font-normal text-muted-foreground">(you can edit this)</span>
             </label>
@@ -115,38 +109,33 @@ export function GoalComposer({
               id="goal"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              rows={3}
-              className="w-full resize-y rounded-lg border border-input bg-background px-3 py-2 text-foreground"
+              rows={4}
+              className="w-full resize-y rounded-lg border border-input bg-background px-3 py-2.5 text-foreground"
             />
-            <p className="mt-1 text-sm text-muted-foreground">
-              We&apos;ll call <span className="font-semibold">{preset.label}</span> and report back exactly what they say.
-            </p>
           </div>
         </>
       ) : (
-        <>
-          <div className="mb-4">
-            <label htmlFor="batch-preset" className="mb-1 block font-semibold">Compare across places</label>
-            <select
-              id="batch-preset"
-              value={batchPresetId}
-              onChange={(e) => setBatchPresetId(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-foreground"
-            >
-              {batchPresets.map((p) => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
-            <p className="mt-2 text-sm text-muted-foreground">
-              We&apos;ll call all {batchPreset.recipients.length} and rank them — but only recommend one whose answer we can actually verify:
-            </p>
-            <ul className="mt-1 list-disc pl-5 text-sm text-muted-foreground">
-              {batchPreset.recipients.map((r) => (
-                <li key={r.id}>{r.label}</li>
-              ))}
-            </ul>
-          </div>
-        </>
+        <div className="mb-5">
+          <label htmlFor="batch-preset" className="mb-1 block font-semibold">Compare across places</label>
+          <select
+            id="batch-preset"
+            value={batchPresetId}
+            onChange={(e) => setBatchPresetId(e.target.value)}
+            className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground"
+          >
+            {batchPresets.map((p) => (
+              <option key={p.id} value={p.id}>{p.label}</option>
+            ))}
+          </select>
+          <p className="mt-2 text-sm text-muted-foreground">
+            We&apos;ll call all {batchPreset.recipients.length} and rank them, but only recommend a place whose answer we can actually verify:
+          </p>
+          <ul className="mt-1 list-disc pl-5 text-sm text-muted-foreground">
+            {batchPreset.recipients.map((r) => (
+              <li key={r.id}>{r.label}</li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <button
@@ -157,7 +146,7 @@ export function GoalComposer({
         {disabled ? "Calling…" : mode === "batch" ? `Call all ${batchPreset.recipients.length} & compare` : "Make the call for me"}
       </button>
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        Demo runs on a mocked call — no real number is dialed.
+        The agent discloses it is calling on your behalf. Demo runs on a mocked call; no real number is dialed.
       </p>
     </form>
   );
