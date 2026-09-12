@@ -44,9 +44,9 @@ export function Hero() {
             Type the goal.<br />We make the <em>call</em>.
           </h1>
           <p className="hero-sub mt-6 max-w-xl text-lg leading-relaxed">
-            For people who can&apos;t use the phone. A CALL-E agent makes the whole call on your behalf and
-            hands you proof of exactly what was said — every answer bound to the words that were spoken, or
-            honestly marked as not confirmed.
+            For people who can&apos;t use the phone. You never hear the call — so every answer comes back
+            pinned to the exact words the other person said, or honestly marked not confirmed. Proof of what
+            was said, not a summary to take on trust.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs uppercase tracking-wider" style={{ color: "var(--hero-dim)" }}>
             <span>You&apos;re never on the line</span>

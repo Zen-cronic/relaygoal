@@ -169,8 +169,8 @@ export default function Home() {
           <p>
             Built on <span className="font-semibold text-foreground">CALL-E</span> goal-driven tasks with structured
             extraction. This demo runs on a mocked call path (no real numbers dialed); the live CALL-E SDK path is an
-            explicit opt-in. Every number shown is a reserved-fictional 555-01xx number. RelayGoal is a task relay and
-            an auxiliary aid, not a substitute for an interpreter.
+            explicit opt-in. Every number shown is a reserved-fictional 555-01xx number. RelayGoal is a
+            communication-support tool, not a telecommunications relay service and not an interpreter replacement.
           </p>
         </footer>
       </div>
