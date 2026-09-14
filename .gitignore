@@ -63,3 +63,7 @@ test-results/
 .idea/
 .DS_Store
 .vercel
+
+# Internal handoff / strategy docs — keep out of the public repo (kept locally only)
+BUILD_CHECKPOINT.md
+design-brief.md
